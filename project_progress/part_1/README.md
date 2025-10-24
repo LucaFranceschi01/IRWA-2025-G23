@@ -76,19 +76,41 @@ After choosing to keep separate the fields, we still have to decide how we treat
 - `seller`
 We decided to clean `category`, `sub-category` and `product_details` by lowercasing and removing punctuation since they have general descriptions. In the other hand, the `brand` and `seller` fields were kept as they were to preserve the proper nouns. The brands and sellers are identifyers, not descriptions, changing them could result in loss of meaning, and make retrieval less precise, since we could be looking for a specific brand and not find it due to normalization.  
 
+**Note:** During preprocessing, we noticed that some brand names appear in multiple slightly different forms. For instance:
+- “U.S. Polo Association”  
+- “US Polo Assn”  
+- “U. S. POLO ASSN.”  
+- “u.s polo assn”
+These inconsistencies clearly reduce the reliability of the data, since the same brand can appear under different variants.  
+Ideally, we would want to normalize these brand names so that all of them are treated as a single entity during retrieval.
+However, after discussing it, we decided*not to perform aggressive normalization at this stage because:
+- We might lose meaningful distinctions in the data.  
+- We don’t currently have a reliable way to unify brand names safely.  
+- We want to preserve the original text for flexibility in later retrieval or manual correction.
+Our current approach is therefore a temporary compromise:  
+we acknowledge that normalization could improve consistency, but we postponed it until we have a better method to ensure that we don’t lose important brand or seller information in the process.
+
 ### 1.4 Handling of Numerical and Binary Fields
 
-These fields are not indexed as text but rather stored as numeric attributes to be used as ranking, sorting and filtering during retrieval. In our data processing we make sure to convert numeric fields to their appropriate types with `to_numeric` and binary fields like `out_of_stock` with `map`. Additionnaly, we had to remove '% off' from the `discount` field. 
+Some fields in the dataset contain numeric or boolean information. These fields describe quantitative or categorical attributes of the products, which play a different role from textual fields like `title` or `description`.  
+- `out_of_stock`  
+- `selling_price`  
+- `discount`  
+- `actual_price`  
+- `average_rating`
+Instead of being indexed as words, they are more useful as filters, sorting criteria, or ranking signals in search and retrieval tasks.
 
-## 2. Exploratory Data Analysis
+To clean them, we first mapped the True and False labels for the `out_of_stock` field to 1 and 0 respectively. Then, for the `actual_price` and `selling_price` we realized that numbers bigger tha## 2. Exploratory Data Analysis
 
+removerd d the comma to then convert them to numerical with the ``to_numeric+ `` functino on. 
+'The `average_rating` was easy to directly convert to numeric. Finally, for `discount` we removed "% off" from the string and kept only the percentage as a number. 
 ![alt text](res/image.png)
 
-We can see that most common words are related to clothing.
+We can see that most common words are related to clothing...
 
 ![alt text](res/image2.png)
 
-And that makes sense since most of the products are related to clothing.
+... and that makes tootal sense since most of the products are related to exactly that.
 
 ![alt text](res/image3.png)
 
@@ -100,4 +122,4 @@ We can clearly see that the most correlated variables are *actual_price* and *se
 
 ![alt text](res/image5.png)
 
->! We need to fix brand namings since brands like "U.S. Polo Association" appears multiple times under different names like all caps, without characters, etc.
+We can see that some of the most out-of-stock brands are also the most expensive ones... the *supply and demand enomic model of price determination in microeconomics* seems to work!
