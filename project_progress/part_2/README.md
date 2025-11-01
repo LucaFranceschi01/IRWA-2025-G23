@@ -28,7 +28,7 @@ We also retrieved the data cleaning used in Part 1 of the project. Each text fie
 > Note: We decided to use only the `title` column after initially trying to use all available text columns (`title`, `description`, `brand`, `seller`, `category`, `subcategory`) but: 
 >- Including all fields degraded ranking quality, since most queries (from the assignment) are short title-based phrases.
 >- Using only `title` improved relevance, but led to many identical TF-IDF scores, as titles are short.
->- To handle that, we preserved identical scores but ranked documents by equal rank values instead of random ordering, ensuring reproducibility in evaluation. 
+>- To handle that, we preserved identical scores but decided to rank documents with equal score equally, instead of trying to order them randomly, ensuring reproducibility in evaluation. 
 
 2. We build a dictionary mapping terms --> list of product IDs that contain the term. Duplicates are avoided by tracking seen terms per document. 
 
@@ -111,7 +111,7 @@ The evaluation was performed at cutoff **K=20**, using the metrics defined in Se
 | Reciprocal Rank (RR@K) | **0.5000** |
 
 This query achieved high precision and perfect recall, indicating that most relevant items were retrieved.  
-However, a low Average Precision and NDCG suggest that relevant documents were not consistently ranked near the top, likely due to tied TF-IDF scores across multiple documents.
+However, a low Average Precision and NDCG suggest that relevant documents were not consistently ranked near the top, likely due to tied TF-IDF scores across multiple documents. Another indicative that something is not right is the low value for the average precision in comparison to the precision. As described more in depth in the notebook, this is an indicative that the amount of documents retrieved in the first 20 ranks are very few, but they are mostly correct (as explained in class, the reason why precision is not a good metric in IR systems).
 
 #### Query 2: *"men slim jeans blue"*
 
@@ -119,7 +119,7 @@ However, a low Average Precision and NDCG suggest that relevant documents were n
 |:----------------------|:--------:|
 | Precision@K | **0.5000** |
 | Recall@K | **1.0000** |
-| Average Precision@K | **0.2038** |
+| Average Precision@K | **0.1621** |
 | F1-Score@K | **0.6667** |
 | NDCG@K | **0.3215** |
 | Reciprocal Rank (RR@K) | **1.0000** |
@@ -131,14 +131,14 @@ The model successfully retrieves all relevant results (Recall = 1.0) but continu
 
 | Metric | Mean Value |
 |:------------------|:--------:|
-| **MAP** | **0.1588** |
+| **MAP** | **0.1380** |
 | **MRR** | **0.7500** |
 
 The system retrieves relevant items for both validation queries with **perfect recall**, but **ranking quality remains limited**.  
-Low MAP and NDCG confirm that while relevant documents are found, they are not always ranked optimally.  
+Low MAP and NDCG confirm that while relevant documents are found, they are not always ranked optimally.
 These findings align with the analysis in Section 2.3, where short product titles and frequent TF-IDF score ties reduce ranking precision.
 
-#### Attempted Probabilistic Re-ranking (unsuccessfull)
+#### Attempted Probabilistic jittering (unsuccessfull)
 
 As we have said before, during evaluation, we noticed that many documents shared identical TF-IDF scores, resulting in large tie groups and consequently poor ranking metrics (especially Average Precision and NDCG).
 To address this, we experimented with a probabilistic tie-breaking approach: for each query, we added a very small random noise to each document’s score and recomputed the evaluation metrics across multiple random seeds.
@@ -150,14 +150,13 @@ The idea was to simulate a realistic ranking where equally-scored documents woul
 
 However, this approach failed to improve the overall results:
 - Precision and recall remained inconsistent across seeds.
-- The improvement was not reproducible — different runs produced different “best” seeds.
 - Random noise introduced artificial ranking differences not supported by the actual TF-IDF similarity values.
 
 As a result, we discarded this method and instead adopted a deterministic ranking using:
 `retrieved['rank'] = retrieved['score'].rank(method='dense', ascending=False)`
 
 This ensured reproducibility and consistent evaluation across runs, even though identical scores remained tied.
-Given the limited number of relevance labels and the high frequency of equal TF-IDF scores, the deterministic ranking provided a fairer and more interpretable evaluation baseline.
+Given the limited number of relevance labels and the high frequency of equal TF-IDF scores, the deterministic ranking provided a fairer and more interpretable evaluation baseline. This approach, however, poses significant changes in the way metrics are computed and might not be as theoretically backed as standard formulae.
 
 ### 2.3.
 
@@ -204,7 +203,7 @@ Our current search system demonstrates the basic mechanics of indexing and TF-ID
 
 3. **Binary Relevance Only**  
    Current evaluation assumes relevance ∈ {0, 1}. However, some products may be *somewhat* relevant.  
-   **→ Improvement:** introduce graded relevance levels (e.g., {0, 1, 2}) to better exploit NDCG.
+   **→ Improvement:** introduce graded relevance levels (e.g., {0, 1, 2}) to better exploit NDCG. However with our current ranking approach might not even be possible.
 
 4. **No Query Expansion or Normalization**  
    Queries are taken literally; synonyms like “tee” and “t-shirt” are treated differently.  
