@@ -271,7 +271,8 @@ def create_index_w2v(model: Word2Vec, data: pd.DataFrame, columns: list = USED_T
         pid = row['pid']
         # Tokenize and preprocess text from specified columns
         text_content = ' '.join(str(v) for v in row[columns].values if pd.notnull(v))
-        tokens = preprocess_text(text_content)
+        # tokens = preprocess_text(text_content)
+        tokens = text_content.split() # data already preprocessed when loading page
         # Compute document vector
         doc_vectors[pid] = text_vector_w2v(model, tokens)
 

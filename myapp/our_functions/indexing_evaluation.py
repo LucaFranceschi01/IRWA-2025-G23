@@ -15,27 +15,6 @@ from nltk.corpus import stopwords
 from nltk.stem import PorterStemmer
 from nltk.tokenize import word_tokenize
 
-
-# --- NLTK bootstrap (optional) ---
-def ensure_nltk(download: bool = False):
-    """
-    Ensure NLTK resources exist. Set download=True to attempt a silent download.
-    """
-    try:
-        import nltk
-        nltk.data.find('tokenizers/punkt')
-    except Exception:
-        if download:
-            import nltk
-            nltk.download('punkt', quiet=True)
-    try:
-        stopwords.words('english')
-    except LookupError:
-        if download:
-            import nltk
-            nltk.download('stopwords', quiet=True)
-
-
 # --- Preprocessing ---
 def preprocess_text(text, stemmer=None, stop_words=None, translator=None):
     """
@@ -53,16 +32,6 @@ def preprocess_text(text, stemmer=None, stop_words=None, translator=None):
     tokens = [stemmer.stem(w) for w in tokens]
     tokens = [w for w in tokens if len(w) > 2]
     return tokens
-
-
-def create_document_for_each_row(row, text_columns):
-    """
-    Concatenate specified text fields for a row into a single string.
-    """
-    text_fields = [str(row[col]) for col in text_columns if col in row and pd.notnull(row[col])]
-    document = ' '.join([f for f in text_fields if f != 'nan' and f != '']).lower()
-    return document
-
 
 # --- Try to reuse the Part-1 preprocessor if available ---
 try:
@@ -87,45 +56,6 @@ def _preprocess_tokens(text: str):
     # fallback to the locally defined pipeline
     return preprocess_text(text)
 
-# --- Inverted index + AND search (small edit to use unified preprocessor) ---
-def build_inverted_index(data: pd.DataFrame, text_columns):
-    """
-    Build an inverted index mapping term -> [pid, ...] with deduplicated PIDs per term.
-    Text is preprocessed (tokenized, stemmed).
-    """
-    inverted_index = defaultdict(list)
-    for _, row in data.iterrows():
-        doc_id = row['pid']
-        row_text = create_document_for_each_row(row, text_columns)
-
-        # Preprocess and tokenize
-        """ row_text = ' '.join(preprocess_text(row_text))
-        tokens = re.findall(r'\b\w+\b', row_text) """
-        tokens = _preprocess_tokens(row_text)
-        tokens = re.findall(r'\b\w+\b', ' '.join(tokens))
-
-        already_seen_terms = set()
-        for term in tokens:
-            if term not in already_seen_terms:
-                inverted_index[term].append(doc_id)
-                already_seen_terms.add(term)
-    return dict(inverted_index)
-
-
-def conjunctive_search(query: str, inverted_index: dict, preprocess: bool = False):
-    """
-    AND query. Returns list of documents containing ALL query terms.
-    Set preprocess=True to apply the same preprocessing to the query.
-    """
-    terms = preprocess_text(query) if preprocess else query.split(' ')
-    intersection = set()
-    for t in terms:
-        if t not in inverted_index:
-            return []
-        intersection = set(inverted_index[t]) if not intersection else intersection.intersection(inverted_index[t])
-    return list(intersection)
-
-
 # --- TF-IDF index + ranking ---
 def create_index_tfidf(data: pd.DataFrame, columns: list):
     """
@@ -148,7 +78,8 @@ def create_index_tfidf(data: pd.DataFrame, columns: list):
         page_id = row['pid']
         joined = ' '.join(str(v) for v in row[columns] if pd.notnull(v))
         ###terms = preprocess_text(joined)
-        terms = _preprocess_tokens(joined)
+        # terms = _preprocess_tokens(joined)
+        terms = joined.split() # data already preprocessed when loading page
 
         current_page_index = {}
         for position, term in enumerate(terms):

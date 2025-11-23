@@ -1,4 +1,5 @@
 import os
+import time
 import pandas as pd
 from json import JSONEncoder
 
@@ -42,7 +43,7 @@ full_path = os.path.realpath(__file__)
 path, filename = os.path.split(full_path)
 file_path = path + "/" + os.getenv("DATA_FILE_PATH")
 #corpus = load_corpus(file_path)
-corpus = our_load_corpus(file_path)
+og_corpus, corpus = our_load_corpus(file_path)
 # Log first element of corpus to verify it loaded correctly:
 #print("\nCorpus is loaded... \n First element:\n", list(corpus.values())[0])
 print("\nCorpus is loaded... \n First element:\n", corpus.head(1))
@@ -72,13 +73,16 @@ def index():
 def search_form_post():
     
     search_query = request.form['search-query']
+    search_method = request.form.get('search-method', 'tfidf') # Default to tfidf
 
     session['last_search_query'] = search_query
 
     search_id = analytics_data.save_query_terms(search_query)
 
     # -- SEARCH FUNCTION -- #
-    results = search_engine.search(search_query, search_id, corpus)
+    start_time = time.time()
+    results = search_engine.search(search_query, search_id, og_corpus, corpus, search_method)
+    elapsed_time = time.time() - start_time
 
     # generate RAG response based on user query and retrieved results
     rag_response = rag_generator.generate_response(search_query, results)
@@ -89,7 +93,7 @@ def search_form_post():
 
     print(session)
 
-    return render_template('results.html', results_list=results, page_title="Results", found_counter=found_count, rag_response=rag_response)
+    return render_template('results.html', results_list=results, page_title="Results", found_counter=found_count, time_taken=elapsed_time, rag_response=rag_response)
 
 
 @app.route('/doc_details', methods=['GET'])
@@ -119,9 +123,25 @@ def doc_details():
 
     print("fact_clicks count for id={} is {}".format(clicked_doc_id, analytics_data.fact_clicks[clicked_doc_id]))
     print(analytics_data.fact_clicks)
-    return render_template('doc_details.html')
+
+    # --- OUR CODE TO RETRIEVE DOCUMENT DETAILS --- #
+    # Retrieve the document from the original corpus
+    document = None
+    matching_rows = og_corpus.loc[og_corpus['pid'] == clicked_doc_id]
+    if not matching_rows.empty:
+        document = matching_rows.iloc[0].to_dict()
+        
+        # Clean up NaNs for better template rendering
+        for key, value in document.items():
+            if isinstance(value, (list, dict)):
+                continue
+            if pd.isna(value):
+                document[key] = None
+
+    return render_template('doc_details.html', document=document)
 
 
+# TODO: Do not use Document here, we are using pandas DataFrame for corpus
 @app.route('/stats', methods=['GET'])
 def stats():
     """
@@ -141,6 +161,7 @@ def stats():
     return render_template('stats.html', clicks_data=docs)
 
 
+# TODO: Do not use Document here, we are using pandas DataFrame for corpus
 @app.route('/dashboard', methods=['GET'])
 def dashboard():
     visited_docs = []

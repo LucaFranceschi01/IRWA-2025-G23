@@ -1,27 +1,51 @@
 {% extends "base.html" %}
 {% block page_title %}{{ page_title }}{% endblock %}
 {% block content %}
-    Found <strong>{{ found_counter }}</strong> results...
-    <hr>
-    {% if rag_response %}
-        <div class="mb-4 p-3" style="border: 1px solid #ccc; border-radius: 5px; background-color: #f9f9f9;">
-            <h5>AI-Generated Summary:</h5>
-            <p>{{ rag_response }}</p>
-        </div>
-    {% endif %}
-    <hr>
-    {% for item in results_list %}
-        <div class="pb-3">
-            <div class="doc-title">
-                <a href="{{ item.url }}">{{ item.title }}...
-                </a>
-            </div>
-            <div class="doc-desc">
-                {{ item.doc_date }} — {{ item.description }}
-            </div>
+Found <strong>{{ found_counter }}</strong> results in <strong>{{ "%.2f"|format(time_taken) }}</strong> seconds
+<hr>
+{% if rag_response %}
+<div class="mb-4 p-3" style="border: 1px solid #ccc; border-radius: 5px; background-color: #f9f9f9;">
+    <h5>AI-Generated Summary:</h5>
+    <p>{{ rag_response }}</p>
+</div>
+{% endif %}
+<hr>
+{% for item in results_list %}
+<div class="pb-3">
+    <div class="doc-title">
+        <a href="{{ item.url }}">{{ item.title }}</a>
+    </div>
+    <div class="doc-desc">
+        {{ item.description }}
+    </div>
+    <div class="mt-2">
+        {% if item.brand %}
+        <span class="badge badge-secondary">{{ item.brand }}</span>
+        {% endif %}
 
-        </div>
+        {% if item.previous_price %}
+        <span class="text-muted"><del>{{ item.previous_price }}₹</del></span>
+        {% endif %}
 
-    {% endfor %}
+        {% if item.selling_price %}
+        <span class="font-weight-bold">{{ item.selling_price }}₹</span>
+        {% endif %}
+
+        {% if item.discount %}
+        <span class="ml-1 text-danger">({{ item.discount }})</span>
+        {% endif %}
+
+        {% if item.average_rating %}
+        <span class="ml-2 text-warning">★ {{ item.average_rating }}</span>
+        {% endif %}
+    </div>
+    <div class="mt-1">
+        <small>
+            <a href="{{ item.original_url }}" target="_blank" class="text-muted">Original Source: {{ item.original_url
+                }}</a>
+        </small>
+    </div>
+</div>
+<hr>
+{% endfor %}
 {% endblock %}
-
