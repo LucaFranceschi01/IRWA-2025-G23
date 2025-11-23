@@ -1,4 +1,5 @@
 import os
+import pandas as pd
 from json import JSONEncoder
 
 import httpagentparser  # for getting the user agent as json
@@ -6,7 +7,7 @@ from flask import Flask, render_template, session
 from flask import request
 
 from myapp.analytics.analytics_data import AnalyticsData, ClickedDoc
-from myapp.search.load_corpus import load_corpus
+from myapp.search.load_corpus import our_load_corpus
 from myapp.search.objects import Document, StatsDocument
 from myapp.search.search_engine import SearchEngine
 from myapp.generation.rag import RAGGenerator
@@ -40,9 +41,11 @@ rag_generator = RAGGenerator()
 full_path = os.path.realpath(__file__)
 path, filename = os.path.split(full_path)
 file_path = path + "/" + os.getenv("DATA_FILE_PATH")
-corpus = load_corpus(file_path)
+#corpus = load_corpus(file_path)
+corpus = our_load_corpus(file_path)
 # Log first element of corpus to verify it loaded correctly:
-print("\nCorpus is loaded... \n First element:\n", list(corpus.values())[0])
+#print("\nCorpus is loaded... \n First element:\n", list(corpus.values())[0])
+print("\nCorpus is loaded... \n First element:\n", corpus.head(1))
 
 
 # Home URL "/"
@@ -74,6 +77,7 @@ def search_form_post():
 
     search_id = analytics_data.save_query_terms(search_query)
 
+    # -- SEARCH FUNCTION -- #
     results = search_engine.search(search_query, search_id, corpus)
 
     # generate RAG response based on user query and retrieved results
