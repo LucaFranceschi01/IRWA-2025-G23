@@ -151,7 +151,7 @@ def rank_documents(terms, docs, index, tf, idf):
 
     return doc_scores
 
-def search_tf_idf(query, index, tf, idf):
+def search_tf_idf(query, index, tf, idf, k=250):
     """
     Search for documents matching the query using TF-IDF and return ranked results.
     
@@ -160,6 +160,7 @@ def search_tf_idf(query, index, tf, idf):
         index (dict): Inverted index.
         tf (dict): Term frequencies.
         idf (dict): Inverse document frequencies.
+        k (int): Number of top results to return.
         
     Returns:
         list: Ranked list of documents [score, doc_id].
@@ -177,7 +178,7 @@ def search_tf_idf(query, index, tf, idf):
             
     docs = list(docs)
     ranked_docs = rank_documents(query_tokens, docs, index, tf, idf)
-    return ranked_docs
+    return ranked_docs[:k]
 
 
 

@@ -1,3 +1,8 @@
+#### Some notes
+
+- Changed the method of the request to GET instead of POST in order to be able to go back to the search page.
+- ...
+
 #### Gemini answer to improving RAG system:
 
 Analysis of Weaknesses

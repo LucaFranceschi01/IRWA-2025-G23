@@ -96,7 +96,7 @@ def get_top_k_results(data: pd.DataFrame,
 
 # --- BM25 Ranking --- #
 
-def search_BM25(bm25: BM25Okapi, data: pd.DataFrame, query: str, k: int = 10) -> list:
+def search_BM25(bm25: BM25Okapi, data: pd.DataFrame, query: str, k: int = 250) -> list:
     """
     Perform search using BM25 algorithm.
 
@@ -160,12 +160,12 @@ class RankingG23:
         else:
             raise ValueError("Method must be 'tfidf' or 'bm25'")
 
-    def search(self, query: str) -> list:
+    def search(self, query: str, k: int = 250) -> list:
         """
         Search and rank documents using the combined score.
         """
         if self.method == 'tfidf':
-            ranked_docs = search_tf_idf(query, self.index, self.tf, self.idf)
+            ranked_docs = search_tf_idf(query, self.index, self.tf, self.idf, k=k)
         elif self.method == 'bm25':
             ranked_docs = search_BM25(self.bm25, self.df, query, k=len(self.df))
         else:
@@ -225,7 +225,7 @@ class RankingG23:
         results.sort(reverse=True)
         self.ranked_docs = results
 
-        return results
+        return results[:k]
     
     def sort(self, criterion: list[str] = ['average_rating'], ascending: list[bool] = [False]) -> pd.DataFrame:
         """
@@ -304,13 +304,13 @@ def rank_documents_w2v(query_terms: list, model: Word2Vec, doc_vectors: dict) ->
 
     return doc_scores
 
-def search_w2v(model: Word2Vec, doc_vectors: dict, query: str) -> list:
+def search_w2v(model: Word2Vec, doc_vectors: dict, query: str, k: int = 250) -> list:
     """
     Performs a search by ranking documents based on their similarity to the query using Word2Vec.
     """
     # Tokenize and preprocess the query
     query_terms = preprocess_text(query)
     # Rank documents based on similarity to the query
-    return rank_documents_w2v(query_terms, model, doc_vectors)
+    return rank_documents_w2v(query_terms, model, doc_vectors)[:k]
 
 # --- End of Word2Vec Ranking --- #

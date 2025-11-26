@@ -5,7 +5,7 @@
     <p>&nbsp;</p>
     <p>&nbsp;</p>
     <p>&nbsp;</p>
-    <form class="d-flex flex-column align-items-center" method="POST" onSubmit='return validate();' action="/search">
+    <form class="d-flex flex-column align-items-center" method="GET" onSubmit='return validate();' action="/search">
         <div class="d-flex w-100 mb-3">
             <input class="form-control me-2" name="search-query" type="search" placeholder="Search" aria-label="Search"
                 autofocus="autofocus">
@@ -21,6 +21,9 @@
         </div>
         <input name="upf-irwa-hidden" type="hidden" value="123">
     </form>
+    <div class="mt-4 text-center">
+        <a href="/dashboard" class="btn btn-outline-info">Dashboard</a>
+    </div>
     <p>&nbsp;</p>
     <p>&nbsp;</p>
     <p>&nbsp;</p>

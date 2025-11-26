@@ -1,0 +1,2 @@
+session_id,user_id,ip_address,user_agent,browser,os,city,country,start_time,end_time,duration
+e1029315-ad58-4ccb-9efd-862dd0552c09,58d1f665-80a2-42cd-a8cd-b76d91290f34,127.0.0.1,"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36",Chrome,Windows,Unknown,Unknown,2025-11-26 20:15:27.075003,2025-11-26 20:49:46.811718,2059.736715

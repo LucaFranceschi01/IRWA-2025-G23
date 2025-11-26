@@ -18,6 +18,9 @@
         </div>
         <hr>
         <div class='content'>
+            <div class="mb-3">
+                <button onclick="history.back()" class="btn btn-outline-secondary">&larr; Back to search</button>
+            </div>
             {% if document %}
             <h2 class="mt-3">{{ document.title }}</h2>
             <div class="row mt-4">
@@ -101,6 +104,41 @@
         <hr>
         <div class='centered'>Information Retrieval and Web Analytics</div>
     </div>
+
+    <script>
+        const startTime = Date.now();
+        const clickId = "{{ click_id }}";
+
+        function logDwellTime() {
+            const endTime = Date.now();
+            const dwellTime = (endTime - startTime) / 1000; // in seconds
+
+            // Use navigator.sendBeacon for reliable data transmission on unload
+            const data = JSON.stringify({
+                click_id: clickId,
+                dwell_time: dwellTime
+            });
+
+            if (navigator.sendBeacon) {
+                const blob = new Blob([data], { type: 'application/json' });
+                navigator.sendBeacon('/log_dwell_time', blob);
+            } else {
+                // Fallback for older browsers
+                const xhr = new XMLHttpRequest();
+                xhr.open("POST", "/log_dwell_time", false); // synchronous
+                xhr.setRequestHeader("Content-Type", "application/json");
+                xhr.send(data);
+            }
+        }
+
+        window.addEventListener('beforeunload', logDwellTime);
+        // Also log when visibility changes (e.g. switching tabs on mobile)
+        document.addEventListener('visibilitychange', function() {
+            if (document.visibilityState === 'hidden') {
+                logDwellTime();
+            }
+        });
+    </script>
 </body>
 
 </html>

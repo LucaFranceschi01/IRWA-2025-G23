@@ -2,14 +2,15 @@ import os
 import time
 import pandas as pd
 from json import JSONEncoder
+import uuid
 
 import httpagentparser  # for getting the user agent as json
 from flask import Flask, render_template, session
 from flask import request
 
-from myapp.analytics.analytics_data import AnalyticsData, ClickedDoc
+from myapp.analytics.analytics_data import AnalyticsData #, ClickedDoc
 from myapp.search.load_corpus import our_load_corpus
-from myapp.search.objects import Document, StatsDocument
+#from myapp.search.objects import Document, StatsDocument
 from myapp.search.search_engine import SearchEngine
 from myapp.generation.rag import RAGGenerator
 from dotenv import load_dotenv
@@ -69,15 +70,31 @@ def index():
     return render_template('index.html', page_title="Welcome")
 
 
-@app.route('/search', methods=['POST'])
-def search_form_post():
-    
-    search_query = request.form['search-query']
-    search_method = request.form.get('search-method', 'tfidf') # Default to tfidf
+@app.route('/search', methods=['GET'])
+def search():
+    search_query = request.args.get('search-query')
+    search_method = request.args.get('search-method', 'tfidf') # Default to tfidf
 
+    # --- DATA ANALYTICS STEPS --- #
+    # 1. Capture context info: IP address and user agent
+    user_ip = request.remote_addr
+    user_agent = request.headers.get('User-Agent')
+
+    # 2. Store last search query in session
+    # Updated to pass session_id
+    # We now log this as a REQUEST with query terms
+    search_id = analytics_data.save_request(
+        session_id=session['session_id'], 
+        url=request.path, 
+        method=request.method, 
+        query_terms=search_query,
+        search_method=search_method
+    )
+
+    # 3. Save search_id to session
+    session['last_search_id'] = search_id
     session['last_search_query'] = search_query
-
-    search_id = analytics_data.save_query_terms(search_query)
+    # --- End of DATA ANALYTICS STEPS --- #
 
     start_time = time.time()
 
@@ -88,43 +105,44 @@ def search_form_post():
     rag_response = rag_generator.generate_response(search_query, results)
     print("RAG response:", rag_response)
 
-    elapsed_time = time.time() - start_time
-
     found_count = len(results)
     session['last_found_count'] = found_count
-
     print(session)
+
+    elapsed_time = time.time() - start_time
 
     return render_template('results.html', results_list=results, page_title="Results", found_counter=found_count, time_taken=elapsed_time, rag_response=rag_response)
 
 
 @app.route('/doc_details', methods=['GET'])
 def doc_details():
-    """
-    Show document details page
-    ### Replace with your custom logic ###
-    """
-
-    # getting request parameters:
-    # user = request.args.get('user')
-    print("doc details session: ")
-    print(session)
-
-    res = session["some_var"]
-    print("recovered var from session:", res)
+    # --- DATA ANALYTICS STEPS --- #
 
     # get the query string parameters from request
     clicked_doc_id = request.args["pid"]
+    # Get rank if available (passed from results.html loop index)
+    rank = request.args.get("rank", 1) 
+    try:
+        rank = int(rank)
+    except:
+        rank = 1
+
     print("click in id={}".format(clicked_doc_id))
 
-    # store data in statistics table 1
-    if clicked_doc_id in analytics_data.fact_clicks.keys():
-        analytics_data.fact_clicks[clicked_doc_id] += 1
-    else:
-        analytics_data.fact_clicks[clicked_doc_id] = 1
+    # 1. Recover search_id from session
+    # In our new schema, the search_id is actually the request_id of the search request
+    search_id = session.get('last_search_id', None)
+    
+    # 2. Log the click into analytics_data
+    # We link the click to the session, not just the search_id (though we could link both if we added a column)
+    # The requirement says "to what query where related", so we can use search_id if we want, 
+    # but the schema requested was Session, Click, Request. 
+    # Let's assume Click links to Session, and we can infer the query from the Session's recent requests.
+    # However, to be precise, let's pass the session_id.
+    click_id = analytics_data.save_click(session['session_id'], clicked_doc_id, rank)
 
-    print("fact_clicks count for id={} is {}".format(clicked_doc_id, analytics_data.fact_clicks[clicked_doc_id]))
-    print(analytics_data.fact_clicks)
+    # --- End of DATA ANALYTICS STEPS --- #
+
 
     # --- OUR CODE TO RETRIEVE DOCUMENT DETAILS --- #
     # Retrieve the document from the original corpus
@@ -140,49 +158,98 @@ def doc_details():
             if pd.isna(value):
                 document[key] = None
 
-    return render_template('doc_details.html', document=document)
+    return render_template('doc_details.html', document=document, click_id=click_id)
 
 
-# TODO: Do not use Document here, we are using pandas DataFrame for corpus
-@app.route('/stats', methods=['GET'])
-def stats():
-    """
-    Show simple statistics example. ### Replace with yourdashboard ###
-    :return:
-    """
-
-    docs = []
-    for doc_id in analytics_data.fact_clicks:
-        row: Document = corpus[doc_id]
-        count = analytics_data.fact_clicks[doc_id]
-        doc = StatsDocument(pid=row.pid, title=row.title, description=row.description, url=row.url, count=count)
-        docs.append(doc)
-    
-    # simulate sort by ranking
-    docs.sort(key=lambda doc: doc.count, reverse=True)
-    return render_template('stats.html', clicks_data=docs)
-
-
-# TODO: Do not use Document here, we are using pandas DataFrame for corpus
 @app.route('/dashboard', methods=['GET'])
 def dashboard():
+    # Get all the data needed for the dashboard
+    kpis = analytics_data.get_kpis()
+    browser_stats = analytics_data.get_browser_stats()
+    os_stats = analytics_data.get_os_stats()
+    top_queries = analytics_data.get_top_queries()
+    search_methods = analytics_data.get_search_methods()
+    daily_traffic = analytics_data.get_daily_traffic()
+    
+    # Existing logic for visited docs
+    clicks_dict = analytics_data.get_clicks_per_doc()
+    dwell_time_dict = analytics_data.get_dwell_time_per_doc()
+    avg_rank_dict = analytics_data.get_avg_rank_per_doc()
+    
     visited_docs = []
-    for doc_id in analytics_data.fact_clicks.keys():
-        d: Document = corpus[doc_id]
-        doc = ClickedDoc(doc_id, d.description, analytics_data.fact_clicks[doc_id])
-        visited_docs.append(doc)
+    for doc_id, count in clicks_dict.items():
+        # Find the document in the corpus
+        matching_rows = og_corpus.loc[og_corpus['pid'] == doc_id]
+        if not matching_rows.empty:
+            row = matching_rows.iloc[0]
+            doc = {
+                'doc_id': doc_id,
+                'title': row['title'],
+                'counter': count,
+                'avg_dwell_time': round(dwell_time_dict.get(doc_id, 0), 2),
+                'avg_rank': round(avg_rank_dict.get(doc_id, 0), 1)
+            }
+            visited_docs.append(doc)
 
-    # simulate sort by ranking
-    visited_docs.sort(key=lambda doc: doc.counter, reverse=True)
-
-    for doc in visited_docs: print(doc)
-    return render_template('dashboard.html', visited_docs=visited_docs)
+    visited_docs.sort(key=lambda doc: doc['counter'], reverse=True)
+    
+    return render_template('dashboard.html', 
+                           visited_docs=visited_docs,
+                           kpis=kpis,
+                           browser_stats=browser_stats,
+                           os_stats=os_stats,
+                           top_queries=top_queries,
+                           search_methods=search_methods,
+                           daily_traffic=daily_traffic)
 
 
 # New route added for generating an examples of basic Altair plot (used for dashboard)
 @app.route('/plot_number_of_views', methods=['GET'])
 def plot_number_of_views():
     return analytics_data.plot_number_of_views()
+@app.route('/log_dwell_time', methods=['POST'])
+def log_dwell_time():
+    data = request.get_json()
+    click_id = data.get('click_id')
+    dwell_time = data.get('dwell_time')
+    
+    if click_id and dwell_time is not None:
+        analytics_data.log_dwell_time(click_id, float(dwell_time))
+        return "OK", 200
+    return "Bad Request", 400
+
+
+@app.before_request
+def before_request():
+    # 1. Ensure User ID (Visitor Context)
+    if 'user_id' not in session:
+        session['user_id'] = str(uuid.uuid4())
+    
+    # 2. Ensure Session ID (Physical Session)
+    # Logic: New session if none exists or last activity > 30 mins ago
+    now = time.time()
+    last_activity = session.get('last_activity', 0)
+    if 'session_id' not in session or (now - last_activity > 1800):
+        session['session_id'] = str(uuid.uuid4())
+        
+    # Ensure session is logged in analytics (idempotent check inside save_session)
+    user_agent = request.headers.get('User-Agent')
+    user_ip = request.remote_addr
+    analytics_data.save_session(session['session_id'], session['user_id'], user_ip, user_agent)
+    
+    session['last_activity'] = now
+
+    # 3. Log User Context (if new user/session)
+    # We can do this once per session to be safe
+    # user_agent = request.headers.get('User-Agent')
+    # user_ip = request.remote_addr
+    # analytics_data.save_user(session['user_id'], user_ip, user_agent)
+
+    # 4. Log Page View (HTTP Requests data)
+    # Only log GET requests here to avoid double logging POST searches
+    # Also exclude /search because it is logged separately with query terms
+    if request.method == 'GET' and request.endpoint != 'static' and request.path != '/search':
+         analytics_data.save_request(session['session_id'], request.path, request.method)
 
 
 if __name__ == "__main__":

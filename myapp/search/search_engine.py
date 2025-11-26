@@ -50,21 +50,22 @@ class SearchEngine:
         # Select search method
         if search_method == 'tfidf':
             inverted_index, tf_index, df_index, idf_index = create_index_tfidf(data=corpus, columns=USED_TEXT_COLUMNS)
-            results = search_tf_idf(query=search_query, index=inverted_index, tf=tf_index, idf=idf_index)
+            results = search_tf_idf(query=search_query, index=inverted_index, tf=tf_index, idf=idf_index, k=250)
         elif search_method == 'bm25':
             BM25 = BM25Okapi(tokenized_corpus)
-            results = search_BM25(bm25=BM25, data=corpus, query=search_query, k=100)
+            results = search_BM25(bm25=BM25, data=corpus, query=search_query, k=250)
         elif search_method == 'word2vec':
             w2v_model = Word2Vec(sentences=tokenized_corpus, vector_size=100, window=5, min_count=1, workers=4, seed=42)
             w2v_doc_vectors = create_index_w2v(model=w2v_model, data=corpus, columns=USED_TEXT_COLUMNS)
-            results = search_w2v(model=w2v_model, doc_vectors=w2v_doc_vectors, query=search_query)
+            results = search_w2v(model=w2v_model, doc_vectors=w2v_doc_vectors, query=search_query, k=250)
         elif search_method == 'custom':
             ranker = RankingG23(df=corpus, columns=USED_TEXT_COLUMNS, method='tfidf')
-            results = ranker.search(query=search_query)
+            results = ranker.search(query=search_query, k=250)
         else:
             # Default to TF-IDF
             inverted_index, tf_index, df_index, idf_index = create_index_tfidf(data=corpus, columns=USED_TEXT_COLUMNS)
-            results = search_tf_idf(query=search_query, index=inverted_index, tf=tf_index, idf=idf_index)
+            results = search_tf_idf(query=search_query, index=inverted_index, tf=tf_index, idf=idf_index, k=250)
+        
         # --- End of OUR SEARCH ENGINE --- #
 
         # --- Format results for the template --- #

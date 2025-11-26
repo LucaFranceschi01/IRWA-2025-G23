@@ -1,6 +1,9 @@
 {% extends "base.html" %}
 {% block page_title %}{{ page_title }}{% endblock %}
 {% block content %}
+<div class="mb-3">
+    <button onclick="history.back()" class="btn btn-outline-secondary">&larr; Back to search</button>
+</div>
 Found <strong>{{ found_counter }}</strong> results in <strong>{{ "%.2f"|format(time_taken) }}</strong> seconds
 <hr>
 {% if rag_response %}
@@ -13,7 +16,7 @@ Found <strong>{{ found_counter }}</strong> results in <strong>{{ "%.2f"|format(t
 {% for item in results_list %}
 <div class="pb-3">
     <div class="doc-title">
-        <a href="{{ item.url }}">{{ item.title }}</a>
+        <a href="{{ item.url }}&rank={{ loop.index }}">{{ item.title }}</a>
     </div>
     <div class="doc-desc">
         {{ item.description }}
