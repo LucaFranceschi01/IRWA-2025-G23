@@ -79,14 +79,16 @@ def search_form_post():
 
     search_id = analytics_data.save_query_terms(search_query)
 
-    # -- SEARCH FUNCTION -- #
     start_time = time.time()
+
+    # -- SEARCH FUNCTION -- #
     results = search_engine.search(search_query, search_id, og_corpus, corpus, search_method)
-    elapsed_time = time.time() - start_time
 
     # generate RAG response based on user query and retrieved results
     rag_response = rag_generator.generate_response(search_query, results)
     print("RAG response:", rag_response)
+
+    elapsed_time = time.time() - start_time
 
     found_count = len(results)
     session['last_found_count'] = found_count
