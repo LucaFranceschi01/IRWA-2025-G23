@@ -4,7 +4,12 @@ import uuid
 import altair as alt
 import httpagentparser
 import os
+import requests
 
+def _get_ipinfo(ip):
+    url = f"https://ipinfo.io/{ip}/json"
+    response = requests.get(url, timeout=5)
+    return response.json()
 
 class AnalyticsData:
     """
@@ -49,12 +54,16 @@ class AnalyticsData:
                 'click_id', 'session_id', 'doc_id', 'rank', 'timestamp', 'dwell_time'
             ])
 
+
+
     def save_session(self, session_id: str, user_id: str, ip_address: str, user_agent: str):
         """Logs a new session with user context"""
         # Ensure user_agent is a string
         if user_agent is None:
             user_agent = ""
-        
+
+        data = _get_ipinfo(ip_address)
+
         now = datetime.datetime.now()
 
         if session_id not in self.sessions['session_id'].values:
@@ -74,8 +83,8 @@ class AnalyticsData:
                 'user_agent': user_agent,
                 'browser': browser,
                 'os': os_name,
-                'city': 'Unknown',
-                'country': 'Unknown',
+                'city': data['city'],
+                'country': data['country'],
                 'start_time': now,
                 'end_time': now,
                 'duration': 0.0

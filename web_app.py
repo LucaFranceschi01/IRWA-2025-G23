@@ -62,7 +62,10 @@ def index():
     user_agent = request.headers.get('User-Agent')
     print("Raw user browser:", user_agent)
 
-    user_ip = request.remote_addr
+    user_ip = request.headers.get('CF-Connecting-IP') \
+           or request.headers.get('X-Forwarded-For') \
+           or request.remote_addr
+    print("Detected IP:", user_ip)
     agent = httpagentparser.detect(user_agent)
 
     print("Remote IP: {} - JSON user browser {}".format(user_ip, agent))
@@ -234,7 +237,9 @@ def before_request():
         
     # Ensure session is logged in analytics (idempotent check inside save_session)
     user_agent = request.headers.get('User-Agent')
-    user_ip = request.remote_addr
+    user_ip = request.headers.get('CF-Connecting-IP') \
+           or request.headers.get('X-Forwarded-For') \
+           or request.remote_addr
     analytics_data.save_session(session['session_id'], session['user_id'], user_ip, user_agent)
     
     session['last_activity'] = now
