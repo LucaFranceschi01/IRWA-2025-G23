@@ -2,10 +2,14 @@
 {% block page_title %}{{ page_title }}{% endblock %}
 
 {% block header %}
+
 <!-- Next tag loads Charts.js https://www.chartjs.org/docs/latest/ -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.6.2/chart.min.js"
-    integrity="sha512-tMabqarPtykgDtdtSqCL3uLVM0gS1ZkUAVhRFu1vSEFgvB73niFQWJuvviDyBGBH22Lcau4rHB5p2K2T0Xvr6Q=="
-    crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+integrity="sha512-tMabqarPtykgDtdtSqCL3uLVM0gS1ZkUAVhRFu1vSEFgvB73niFQWJuvviDyBGBH22Lcau4rHB5p2K2T0Xvr6Q=="
+crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+
+<!-- <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.7.3/Chart.bundle.min.js"></script> -->
+<script src="https://pandameister.github.io/chartjs-chart-sunburst/docs/js/Chart.Sunburst.umd.js"></script>
 {% endblock %}
 
 {% block content %}
@@ -121,6 +125,35 @@
         </div>
     </div>
 
+    <!-- Charts Row 4 -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card h-100">
+                <div class="card-header">Location Distribution</div>
+                <div class="card-body">
+                    <canvas id="countryChart"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card h-100">
+                <div class="card-header">Location Distribution</div>
+                <div class="card-body">
+                    <canvas id="cityChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+<!-- 
+    <div class="row">
+        <div class="card h-100" style="min-height: 800px; min-width: 100%;">
+            <div class="card-header">User Locations</div>
+            <div class="card-body">
+                <canvas id="locationSunburst"></canvas>
+            </div>
+        </div>
+    </div> -->
+
     <!-- Most Visited Table -->
     <div class="row">
         <div class="col-12">
@@ -158,12 +191,80 @@
 </div>
 
 <script>
+
+    // function convertTreeToFlatNodes(tree) {
+    //     let nodes = [];
+    //     let idCounter = 0;
+
+    //     // Calculate total for root
+    //     const totalValue = tree.children.reduce((sum, country) => {
+    //         return sum + country.children.reduce((s, c) => s + c.value, 0);
+    //     }, 0);
+
+    //     // Root node
+    //     nodes.push({
+    //         id: idCounter,
+    //         parentId: null,
+    //         value: totalValue,
+    //         name: "ROOT"
+    //     });
+
+    //     const rootId = idCounter;
+    //     idCounter++;
+
+    //     // Convert recursively
+    //     tree.children.forEach(country => {
+    //         const countryId = idCounter++;
+    //         const countryTotal = country.children.reduce((s, c) => s + c.value, 0);
+
+    //         // Country node
+    //         nodes.push({
+    //             id: countryId,
+    //             parentId: rootId,
+    //             value: countryTotal,
+    //             name: country.name,
+    //             color: country.color
+    //         });
+
+    //         // City nodes
+    //         country.children.forEach(city => {
+    //             const cityId = idCounter++;
+
+    //             nodes.push({
+    //                 id: cityId,
+    //                 parentId: countryId,
+    //                 value: city.value,
+    //                 name: city.name,
+    //                 color: city.color
+    //             });
+    //         });
+    //     });
+
+    //     return nodes;
+    // }
+
+    // // Build sunburst dataset
+    // function buildSunburstData(data) {
+    //     return {
+    //         children: Object.entries(data).map(([country, cities]) => ({
+    //             name: country,
+    //             children: Object.entries(cities).map(([city, count], j) => ({
+    //                 name: city,
+    //                 value: count
+    //             }))
+    //         }))
+    //     };
+    // }
+
     // Prepare data from Flask
     const dailyTrafficData = JSON.parse('{{ daily_traffic | tojson }}');
     const topQueriesData = JSON.parse('{{ top_queries | tojson }}');
     const searchMethodsData = JSON.parse('{{ search_methods | default({}) | tojson }}');
     const browserData = JSON.parse('{{ browser_stats | tojson }}');
     const osData = JSON.parse('{{ os_stats | tojson }}');
+    const countryData = JSON.parse('{{ country_stats | tojson }}');
+    const cityData = JSON.parse('{{ city_stats | tojson }}');
+    // const locData = JSON.parse('{{ country_city_stats | tojson }}');
 
     // 1. Daily Traffic Chart (Line)
     new Chart(document.getElementById('dailyTrafficChart'), {
@@ -198,6 +299,7 @@
             }]
         },
         options: {
+            maintainAspectRatio: true,
             indexAxis: 'y',
             scales: { x: { beginAtZero: true, ticks: { stepSize: 1 } } }
         }
@@ -217,6 +319,7 @@
             }]
         },
         options: {
+            maintainAspectRatio: true,
             scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } }
         }
     });
@@ -236,6 +339,9 @@
                     'rgb(153, 102, 255)'
                 ]
             }]
+        },
+        options: {
+            maintainAspectRatio: true
         }
     });
 
@@ -253,7 +359,81 @@
                     'rgb(255, 99, 132)'
                 ]
             }]
+        },
+        options: {
+            maintainAspectRatio: true
         }
     });
+
+    // 4. Country (Pie)
+    new Chart(document.getElementById('countryChart'), {
+        type: 'pie',
+        data: {
+            labels: Object.keys(countryData),
+            datasets: [{
+                data: Object.values(countryData),
+                backgroundColor: [
+                    'rgb(255, 159, 64)',
+                    'rgb(75, 192, 192)',
+                    'rgb(153, 102, 255)',
+                    'rgb(255, 99, 132)'
+                ]
+            }]
+        },
+        options: {
+            maintainAspectRatio: true
+        }
+    });
+    
+    // 4. City (Pie)
+    new Chart(document.getElementById('cityChart'), {
+        type: 'pie',
+        data: {
+            labels: Object.keys(cityData),
+            datasets: [{
+                data: Object.values(cityData),
+                backgroundColor: [
+                    'rgb(255, 159, 64)',
+                    'rgb(75, 192, 192)',
+                    'rgb(153, 102, 255)',
+                    'rgb(255, 99, 132)'
+                ]
+            }]
+        },
+        options: {
+            maintainAspectRatio: true
+        }
+    });
+
+    // var flatNodes = convertTreeToFlatNodes(buildSunburstData(locData));
+
+    // new Chart(document.getElementById('locationSunburst'), {
+    //     type: 'sunburst',
+    //     data: {
+    //         datasets: [{
+    //             tree: flatNodes,            // key! must be `tree` for flat nodes
+    //             key: 'value',               // property for arc size
+    //             nodeId: 'id',               // property in objects
+    //             parentId: 'parentId',       // property in objects
+    //             backgroundColor: flatNodes.map(n => n.color || 'gray'),
+    //             borderWidth: 0.5,
+    //             data: flatNodes,                // your flat nodes array
+    //         }]
+    //     },
+    //     options: {
+    //         responsive: true,
+    //         plugins: {
+    //             legend: { display: true },
+    //             tooltip: {
+    //                 enabled: true,
+    //                 callbacks: {
+    //                     title: (items) => items[0].raw.name,
+    //                     label: (item) => `Sessions: ${item.raw.value}`
+    //                 }
+    //             }
+    //         },
+    //         scaleByMetric: 'value'
+    //     }
+    // });
 </script>
 {% endblock %}

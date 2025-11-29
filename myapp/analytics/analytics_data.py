@@ -225,6 +225,31 @@ class AnalyticsData:
         if self.sessions.empty: return {}
         return self.sessions['os'].value_counts().to_dict()
     
+    def get_country_stats(self):
+        """Returns session count per country"""
+        if self.sessions.empty:
+            return {}
+        # Assume 'country' column exists (from ipinfo)
+        return self.sessions['country'].value_counts().to_dict()
+    
+    def get_city_stats(self):
+        """Returns session count per country"""
+        if self.sessions.empty:
+            return {}
+        # Assume 'country' column exists (from ipinfo)
+        return self.sessions['city'].value_counts().to_dict()
+    
+    def get_country_city_stats(self):
+        if self.sessions.empty:
+            return {}
+        data = {}
+        for _, row in self.sessions.iterrows():
+            country = row["country"]
+            city = row.get("city", "Unknown")
+            data.setdefault(country, {})
+            data[country][city] = data[country].get(city, 0) + 1
+        return data
+    
     def get_top_queries(self, limit=10):
         """Returns top search queries"""
         if self.requests.empty: return {}

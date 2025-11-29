@@ -170,6 +170,8 @@ def dashboard():
     kpis = analytics_data.get_kpis()
     browser_stats = analytics_data.get_browser_stats()
     os_stats = analytics_data.get_os_stats()
+    country_stats = analytics_data.get_country_stats()
+    city_stats = analytics_data.get_city_stats()
     top_queries = analytics_data.get_top_queries()
     search_methods = analytics_data.get_search_methods()
     daily_traffic = analytics_data.get_daily_traffic()
@@ -178,6 +180,8 @@ def dashboard():
     clicks_dict = analytics_data.get_clicks_per_doc()
     dwell_time_dict = analytics_data.get_dwell_time_per_doc()
     avg_rank_dict = analytics_data.get_avg_rank_per_doc()
+
+    country_city_stats = analytics_data.get_country_city_stats()
     
     visited_docs = []
     for doc_id, count in clicks_dict.items():
@@ -201,9 +205,12 @@ def dashboard():
                            kpis=kpis,
                            browser_stats=browser_stats,
                            os_stats=os_stats,
+                           country_stats=country_stats,
+                           city_stats=city_stats,
                            top_queries=top_queries,
                            search_methods=search_methods,
-                           daily_traffic=daily_traffic)
+                           daily_traffic=daily_traffic,
+                           country_city_stats=country_city_stats)
 
 
 # New route added for generating an examples of basic Altair plot (used for dashboard)
