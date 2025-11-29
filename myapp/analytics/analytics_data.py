@@ -80,7 +80,6 @@ class AnalyticsData:
             try:
                 city = data['city']
             except KeyError as e:
-                country = data['country']
                 print(f'We cannot process {e}')
             
             try:
