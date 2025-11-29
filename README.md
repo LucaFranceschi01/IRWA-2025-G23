@@ -113,6 +113,30 @@ The above will start a web server with the application:
 Open Web app in your Browser:  
 [http://127.0.0.1:8088/](http://127.0.0.1:8088/) or [http://localhost:8088/](http://localhost:8088/)
 
+## Tunnelling the Web App to get location information
+
+Since if running on localhost there's no possibility of tracking location from IP Address, we have tunnelled our localhost application through Cloudflare's and accessed it through a public generated URI. After that, we've parsed the IP and queried `IpInfo.io` for information about location. We've stored the result and used it in the dashboard.
+
+The steps to get the tunnelling working are fairly easy:
+
+1. Install `cloudflared` [Download link for all OSs](https://developers.cloudflare.com/cloudflare-one/networks/connectors/cloudflare-tunnel/downloads/#latest-release)
+2. Once the WebApp is up and running in localhost, tunnel that port using the command
+```
+cloudflared tunnel --url http://127.0.0.1:8088
+```
+3. The above command will eventually show a URL from which the application can be accessed. Note: the location will be recorded in the dashboard!
+```
+...
+Requesting new quick Tunnel on trycloudflare.com...
+2025-11-29T12:17:35Z INF +--------------------------------------------------------------------------------------------+
+2025-11-29T12:17:35Z INF |  Your quick Tunnel has been created! Visit it at (it may take some time to be reachable):  |
+2025-11-29T12:17:35Z INF |  https://this-would-be-the-url.trycloudflare.com                                           |
+2025-11-29T12:17:35Z INF +--------------------------------------------------------------------------------------------+
+...
+```
+
+> If there's any problem replicating these steps, we are more than willing to set this up for evaluation so the teacher just has to enter a link. Just reach out!
+
 ## Usage: 
 1. As for Parts 1, 2, and 3 of the project, please use the `project_progress` folder to store your solutions. Each part should contain `.pdf` file with your report and `.ipynb` (Jupyter Notebook) file with your code for solution and `README.md` with explanation of the content and instructions for results reproduction.
 2. For the Part 4, of the project, you should build a web application using Flask that allows users to search through a collection of documents and view analytics about their searches. You should work mailnly in the `web_app.py` file `myapp` and `templates` folders. Feel free to change any code or add new files as needed. The provided code is just a starting point to help you get started quickly.
