@@ -75,7 +75,19 @@ class AnalyticsData:
                 print(f"Error parsing user agent: {e}")
                 browser = 'Unknown'
                 os_name = 'Unknown'
+
+            city = country = 'Unknown'
+            try:
+                city = data['city']
+            except KeyError as e:
+                country = data['country']
+                print(f'We cannot process {e}')
             
+            try:
+                country = data['country']
+            except KeyError as e:
+                print(f'We cannot process {e}')
+
             new_row = {
                 'session_id': session_id,
                 'user_id': user_id,
@@ -83,8 +95,8 @@ class AnalyticsData:
                 'user_agent': user_agent,
                 'browser': browser,
                 'os': os_name,
-                'city': data['city'],
-                'country': data['country'],
+                'city': city,
+                'country': country,
                 'start_time': now,
                 'end_time': now,
                 'duration': 0.0
