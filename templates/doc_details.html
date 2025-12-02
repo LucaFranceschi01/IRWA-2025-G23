@@ -1,18 +1,144 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <title>Document Detail - IRWA Search Engine</title>
+    <link rel="stylesheet" href="{{ url_for('static',filename='styles/bootstrap.min.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static',filename='styles/custom.css') }}">
 </head>
+
 <body>
-<div><a href="/" >Home</a></div>
-<div><a href="/stats" >Stats</a></div>
-<div><a href="/dashboard" >Dashboard</a></div>
-<h1>Document Detail Page</h1>
-<p>This is a placeholder for document details.</p>
-<p>Here you can display more information about the document.</p>
-<p>For example, you might show the full text of the document, metadata, or other relevant details.</p>
-<p>You can also include links to related documents or resources.</p>
-<p>Feel free to customize this page to fit the needs of your application.</p>
+    <div class="container">
+        <div class='header text-center'>
+            <a href="/">
+                <img src="{{ url_for('static', filename='logo.png') }}" width="100" alt="UPF logo" />
+            </a>
+            <span> IRWA Search Engine </span>
+        </div>
+        <hr>
+        <div class='content'>
+            <div class="mb-3">
+                <button onclick="history.back()" class="btn btn-outline-secondary">&larr; Back to search</button>
+            </div>
+            {% if document %}
+            <h2 class="mt-3">{{ document.title }}</h2>
+            <div class="row mt-4">
+                <div class="col-md-8">
+                    <p class="lead">{{ document.description }}</p>
+
+                    <table class="table table-bordered">
+                        <tbody>
+                            <tr>
+                                <th style="width: 20%">Brand</th>
+                                <td>{{ document.brand }}</td>
+                            </tr>
+                            <tr>
+                                <th>Category</th>
+                                <td>{{ document.category }} &gt; {{ document.sub_category }}</td>
+                            </tr>
+                            <tr>
+                                <th>Seller</th>
+                                <td>{{ document.seller }}</td>
+                            </tr>
+                            <tr>
+                                <th>Price</th>
+                                <td>
+                                    {% if document.actual_price %}
+                                    <span class="text-muted"><del>{{ document.actual_price }}₹</del></span>
+                                    {% endif %}
+                                    <span class="font-weight-bold ml-2" style="font-size: 1.2em;">{{
+                                        document.selling_price }}₹</span>
+                                    {% if document.discount %}
+                                    <span class="text-danger ml-2">({{ document.discount }} off)</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            <tr>
+                                <th>Rating</th>
+                                <td>
+                                    {% if document.average_rating %}
+                                    <span class="text-warning">★ {{ document.average_rating }}</span>
+                                    {% else %}
+                                    N/A
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            <tr>
+                                <th>Availability</th>
+                                <td>
+                                    {% if document.out_of_stock %}
+                                    <span class="badge badge-danger">Out of Stock</span>
+                                    {% else %}
+                                    <span class="badge badge-success">In Stock</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+
+                    <a href="{{ document.url }}" class="btn btn-primary mt-2" target="_blank">View on Flipkart</a>
+
+                </div>
+                <div class="col-md-4">
+                    {% if document.images %}
+                    {% for img in document.images %}
+                    <img src="{{ img }}" class="img-fluid mb-2 rounded border" alt="Product Image">
+                    {% endfor %}
+                    {% else %}
+                    <div class="text-center p-5 bg-light border rounded">
+                        <span class="text-muted">No Image Available</span>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            {% else %}
+            <div class="alert alert-danger mt-4">
+                <h4>Document not found</h4>
+                <p>The document with ID <strong>{{ request.args.get('pid') }}</strong> could not be found in the
+                    dataset.</p>
+            </div>
+            {% endif %}
+        </div>
+        <hr>
+        <div class='centered'>Information Retrieval and Web Analytics</div>
+    </div>
+
+    <script>
+        const startTime = Date.now();
+        const clickId = "{{ click_id }}";
+
+        function logDwellTime() {
+            const endTime = Date.now();
+            const dwellTime = (endTime - startTime) / 1000; // in seconds
+
+            // Use navigator.sendBeacon for reliable data transmission on unload
+            const data = JSON.stringify({
+                click_id: clickId,
+                dwell_time: dwellTime
+            });
+
+            if (navigator.sendBeacon) {
+                const blob = new Blob([data], { type: 'application/json' });
+                navigator.sendBeacon('/log_dwell_time', blob);
+            } else {
+                // Fallback for older browsers
+                const xhr = new XMLHttpRequest();
+                xhr.open("POST", "/log_dwell_time", false); // synchronous
+                xhr.setRequestHeader("Content-Type", "application/json");
+                xhr.send(data);
+            }
+        }
+
+        window.addEventListener('beforeunload', logDwellTime);
+        // Also log when visibility changes (e.g. switching tabs on mobile)
+        document.addEventListener('visibilitychange', function() {
+            if (document.visibilityState === 'hidden') {
+                logDwellTime();
+            }
+        });
+    </script>
 </body>
+
 </html>
